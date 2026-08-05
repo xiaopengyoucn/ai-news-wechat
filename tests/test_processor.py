@@ -10,6 +10,15 @@ def _fake_completion(content_str: str):
     )
 
 
+def _ok_response(items: list[Item], start_imp: int = 9) -> str:
+    rows = []
+    for i, it in enumerate(items):
+        rows.append(
+            f'{{"url":"{it.url}","title_zh":"t{i}","summary_zh":"s{i}","importance":{start_imp - i},"category":"研究"}}'
+        )
+    return "[" + ",".join(rows) + "]"
+
+
 def test_enrich_parses_json_and_filters():
     items = [
         Item(url="https://a/1", title="Big breakthrough", source="Test", snippet="x", published=None),
@@ -66,3 +75,38 @@ def test_fallback_returns_processed_zero_importance():
     result = fallback_processed(items)
     assert result[0].importance == 0
     assert result[0].title_zh == "T"
+
+
+def test_enrich_passes_timeout_to_client():
+    items = [Item(url="https://a/1", title="t", source="S", snippet="", published=None)]
+    fake_json = '[{"url":"https://a/1","title_zh":"t","summary_zh":"s","importance":7,"category":"研究"}]'
+    with patch("processor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = _fake_completion(fake_json)
+        enrich(items, api_key="k")
+    _, kwargs = MockClient.return_value.chat.completions.create.call_args
+    assert kwargs.get("timeout") == 60.0
+
+
+def test_enrich_batches_into_chunks_of_20():
+    items = [Item(url=f"https://a/{i}", title=f"t{i}", source="S", snippet="", published=None) for i in range(45)]
+    chunks_json = [
+        _ok_response(items[0:20], start_imp=10),
+        _ok_response(items[20:40], start_imp=10),
+        _ok_response(items[40:45], start_imp=10),
+    ]
+    responses = [_fake_completion(j) for j in chunks_json]
+
+    with patch("processor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.side_effect = responses
+        result = enrich(items, api_key="k")
+    assert MockClient.return_value.chat.completions.create.call_count == 3
+    assert len(result) == 15
+
+
+def test_enrich_falls_back_when_all_chunks_fail():
+    items = [Item(url=f"https://a/{i}", title=f"t{i}", source="S", snippet="", published=None) for i in range(5)]
+    with patch("processor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.side_effect = RuntimeError("net down")
+        result = enrich(items, api_key="k")
+    assert len(result) == 5
+    assert all(p.importance == 0 for p in result)

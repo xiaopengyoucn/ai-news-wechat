@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 
-from fetcher import fetch_all, Item
+from fetcher import fetch_all, fetch_one, Item
 
 
 FAKE_FEED = """<?xml version="1.0" encoding="UTF-8"?>
@@ -15,26 +15,38 @@ FAKE_FEED = """<?xml version="1.0" encoding="UTF-8"?>
 </channel></rss>"""
 
 
+def _entries_mock():
+    return MagicMock(entries=[
+        MagicMock(
+            title="New Model Released",
+            link="https://example.com/1",
+            summary="A new model from lab",
+            published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
+        ),
+    ])
+
+
 def test_fetch_all_returns_items_within_window():
     sources = [{"name": "Test", "url": "https://example.com/feed", "region": "en"}]
-    with patch("feedparser.parse") as mock_parse:
-        mock_parse.return_value = MagicMock(entries=[
-            MagicMock(
-                title="New Model Released",
-                link="https://example.com/1",
-                summary="A new model from lab",
-                published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
-            ),
-        ])
+    with patch("fetcher.requests.get") as mock_get, \
+         patch("feedparser.parse") as mock_parse:
+        mock_get.return_value = MagicMock(content=b"<rss/>", raise_for_status=lambda: None)
+        mock_parse.return_value = _entries_mock()
         items = fetch_all(sources, since_hours=24, seen=set())
     assert len(items) == 1
     assert items[0].url == "https://example.com/1"
     assert items[0].source == "Test"
+    mock_get.assert_called()
+    _, kwargs = mock_get.call_args
+    assert "timeout" in kwargs
+    assert kwargs["headers"]["User-Agent"] == "ai-news-wechat/0.1"
 
 
 def test_fetch_all_skips_seen_urls():
     sources = [{"name": "Test", "url": "https://example.com/feed", "region": "en"}]
-    with patch("feedparser.parse") as mock_parse:
+    with patch("fetcher.requests.get") as mock_get, \
+         patch("feedparser.parse") as mock_parse:
+        mock_get.return_value = MagicMock(content=b"<rss/>", raise_for_status=lambda: None)
         mock_parse.return_value = MagicMock(entries=[
             MagicMock(
                 title="A",
@@ -52,10 +64,12 @@ def test_fetch_all_continues_when_one_source_fails():
         {"name": "Good", "url": "https://good.example/feed", "region": "en"},
         {"name": "Bad", "url": "https://bad.example/feed", "region": "en"},
     ]
-    def fake_parse(url):
+    def fake_get(url, **kwargs):
         if "bad" in url:
             raise Exception("boom")
-        m = MagicMock(entries=[
+        return MagicMock(content=b"<rss/>", raise_for_status=lambda: None)
+    def fake_parse(content):
+        return MagicMock(entries=[
             MagicMock(
                 title="OK",
                 link="https://good.example/1",
@@ -63,8 +77,18 @@ def test_fetch_all_continues_when_one_source_fails():
                 published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
             )
         ])
-        return m
-    with patch("feedparser.parse", side_effect=fake_parse):
+    with patch("fetcher.requests.get", side_effect=fake_get), \
+         patch("feedparser.parse", side_effect=fake_parse):
         items = fetch_all(sources, since_hours=24, seen=set())
     assert len(items) == 1
     assert items[0].source == "Good"
+
+
+def test_fetch_one_passes_timeout():
+    with patch("fetcher.requests.get") as mock_get, \
+         patch("feedparser.parse") as mock_parse:
+        mock_get.return_value = MagicMock(content=b"<rss/>", raise_for_status=lambda: None)
+        mock_parse.return_value = MagicMock(entries=[])
+        fetch_one("https://example.com/feed", timeout=7)
+    _, kwargs = mock_get.call_args
+    assert kwargs["timeout"] == 7

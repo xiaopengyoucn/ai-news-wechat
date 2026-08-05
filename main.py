@@ -13,6 +13,8 @@ from publisher import render_markdown, publish_pushplus
 
 log = logging.getLogger("ai-news-wechat")
 
+TOP_N = 15
+
 
 def _now_ts() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -48,6 +50,7 @@ def run(mode: str) -> int:
     if not processed and items:
         log.warning("LLM produced no items, using English fallback")
         processed = fallback_processed(items)
+        processed = processed[:TOP_N]
     log.info("processed -> %d items after filter", len(processed))
 
     title = _make_title(mode)
@@ -62,12 +65,16 @@ def run(mode: str) -> int:
     code = publish_pushplus(title, body, token=token, topic=topic)
     if code == 200:
         log.info("push ok")
-    else:
-        log.error("push failed status=%s", code)
+        state.add([it.url for it in processed])
+        state.save()
+        return 0
 
-    state.add([it.url for it in processed])
-    state.save()
-    return 0 if code == 200 else 2
+    log.error("push failed status=%s", code)
+    failed_path = f"output/failed_{_now_ts()}.md"
+    with open(failed_path, "w", encoding="utf-8") as f:
+        f.write(body)
+    log.error("digest preserved at %s for manual retry", failed_path)
+    return 2
 
 
 def main() -> None:

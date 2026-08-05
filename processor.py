@@ -3,7 +3,7 @@ import logging
 import re
 from dataclasses import dataclass
 
-from openai import OpenAI
+from openai import APITimeoutError, OpenAI
 
 from fetcher import Item
 
@@ -20,6 +20,8 @@ class Processed:
     category: str
     source: str
 
+
+_CHUNK_SIZE = 20
 
 _PROMPT = """你是 AI 行业编辑。下面是 {n} 条英文新闻条目，请对每一条：
 1. 把 title 翻译为中文（保留专有名词原文）
@@ -57,6 +59,31 @@ def _parse_json_block(content: str) -> list[dict] | None:
     return data
 
 
+def _enrich_chunk(client: OpenAI, items: list[Item], model: str) -> list[dict] | None:
+    prompt = _build_prompt(items)
+    last_err: Exception | None = None
+    for attempt in range(2):
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                timeout=60.0,
+            )
+            parsed = _parse_json_block(resp.choices[0].message.content or "")
+            if parsed is not None:
+                return parsed
+            last_err = ValueError("parse failed")
+        except APITimeoutError as exc:
+            last_err = exc
+            log.warning("LLM timeout attempt %d: %s", attempt + 1, exc)
+        except Exception as exc:
+            last_err = exc
+            log.warning("LLM call attempt %d failed: %s", attempt + 1, exc)
+    log.error("LLM chunk failed after retries (n=%d): %s", len(items), last_err)
+    return None
+
+
 def enrich(
     items: list[Item],
     api_key: str,
@@ -69,32 +96,24 @@ def enrich(
         return []
 
     client = OpenAI(api_key=api_key, base_url=base_url)
-    prompt = _build_prompt(items)
 
-    last_err: Exception | None = None
-    parsed: list[dict] | None = None
-    for attempt in range(2):
-        try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-            )
-            parsed = _parse_json_block(resp.choices[0].message.content or "")
-            if parsed is not None:
-                break
-        except Exception as exc:
-            last_err = exc
-            log.warning("LLM call attempt %d failed: %s", attempt + 1, exc)
-            parsed = None
+    chunks = [items[i:i + _CHUNK_SIZE] for i in range(0, len(items), _CHUNK_SIZE)]
+    all_rows: list[dict] = []
+    failed_chunks = 0
+    for chunk in chunks:
+        parsed = _enrich_chunk(client, chunk, model)
+        if parsed is None:
+            failed_chunks += 1
+            continue
+        all_rows.extend(parsed)
 
-    if parsed is None:
-        log.error("LLM failed after retries: %s", last_err)
+    if failed_chunks == len(chunks):
+        log.error("LLM failed for all chunks, using fallback")
         return fallback_processed(items)
 
     by_url = {it.url: it for it in items}
     processed: list[Processed] = []
-    for row in parsed:
+    for row in all_rows:
         url = row.get("url", "").strip()
         it = by_url.get(url)
         if not it:

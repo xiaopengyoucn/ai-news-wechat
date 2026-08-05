@@ -4,9 +4,12 @@ from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import feedparser
+import requests
 
 
 log = logging.getLogger(__name__)
+
+_USER_AGENT = "ai-news-wechat/0.1"
 
 
 @dataclass
@@ -36,7 +39,13 @@ def _to_dt(entry) -> datetime | None:
 
 
 def fetch_one(url: str, timeout: int = 15):
-    return feedparser.parse(url)
+    resp = requests.get(
+        url,
+        timeout=timeout,
+        headers={"User-Agent": _USER_AGENT},
+    )
+    resp.raise_for_status()
+    return feedparser.parse(resp.content)
 
 
 def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: int = 15) -> list[Item]:

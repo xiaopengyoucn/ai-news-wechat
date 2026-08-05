@@ -1,4 +1,5 @@
 import logging
+import time
 
 import requests
 
@@ -32,6 +33,18 @@ def render_markdown(title: str, items: list[Processed]) -> str:
     return body
 
 
+def _business_code(resp: requests.Response) -> int | None:
+    try:
+        data = resp.json()
+    except ValueError:
+        return None
+    code = data.get("code")
+    try:
+        return int(code) if code is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def publish_pushplus(
     title: str,
     content_md: str,
@@ -53,12 +66,23 @@ def publish_pushplus(
     for attempt in range(3):
         try:
             resp = requests.post(_PUSHPLUS_URL, json=payload, timeout=timeout)
-            if resp.status_code < 500:
-                log.info("pushplus response %s: %s", resp.status_code, resp.text[:200])
+            if resp.status_code == 200:
+                biz = _business_code(resp)
+                if biz == 200:
+                    log.info("pushplus ok: %s", resp.text[:200])
+                    return 200
+                last_err = RuntimeError(f"biz code {biz}")
+                log.warning("pushplus biz code %s attempt %d: %s", biz, attempt + 1, resp.text[:200])
+            elif resp.status_code == 429 or resp.status_code >= 500:
+                last_err = RuntimeError(f"status {resp.status_code}")
+                log.warning("pushplus %s attempt %d: %s", resp.status_code, attempt + 1, resp.text[:200])
+            else:
+                log.error("pushplus %s (no retry): %s", resp.status_code, resp.text[:200])
                 return resp.status_code
-            log.warning("pushplus 5xx attempt %d: %s", attempt + 1, resp.status_code)
         except Exception as exc:
             last_err = exc
             log.warning("pushplus attempt %d failed: %s", attempt + 1, exc)
+        if attempt < 2:
+            time.sleep(2 ** attempt)
     log.error("pushplus failed after retries: %s", last_err)
     return 0

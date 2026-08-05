@@ -7,6 +7,7 @@ SOURCES = [
     {"name": "arXiv cs.AI", "url": "https://export.arxiv.org/rss/cs.AI", "region": "en"},
     {"name": "arXiv cs.CL", "url": "https://export.arxiv.org/rss/cs.CL", "region": "en"},
     {"name": "arXiv cs.LG", "url": "https://export.arxiv.org/rss/cs.LG", "region": "en"},
+    {"name": "Papers with Code AI", "url": "https://paperswithcode.com/area/ai/feed", "region": "en"},
     {"name": "Hacker News (newest)", "url": "https://hnrss.org/newest?q=AI", "region": "en"},
     {"name": "Reddit r/MachineLearning", "url": "https://www.reddit.com/r/MachineLearning/.rss", "region": "en"},
     {"name": "Reddit r/LocalLLaMA", "url": "https://www.reddit.com/r/LocalLLaMA/.rss", "region": "en"},
