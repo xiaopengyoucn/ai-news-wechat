@@ -4,6 +4,20 @@
 
 ## 部署（5 分钟）
 
+### 方式 A：一键脚本（推荐）
+
+```bash
+# git-bash / WSL / macOS / Linux
+./deploy.sh
+
+# Windows PowerShell
+.\deploy.ps1
+```
+
+脚本会：检查 gh CLI → 提示输入仓库名/公开性 → 创建仓库 → push → 交互配置 Secrets → 启用 Actions → 可选试跑。
+
+### 方式 B：手动部署
+
 1. Fork 本仓库到你自己的 GitHub。
 2. 注册 [pushplus.plus](https://pushplus.plus) 微信扫码绑定，拿到 `PUSHPLUS_TOKEN`。
 3. 注册 [DeepSeek](https://platform.deepseek.com) 拿到 `DEEPSEEK_API_KEY`。
@@ -13,7 +27,6 @@
    - （可选）`PUSHPLUS_TOPIC`、`LLM_MODEL`（默认 deepseek-chat）
 5. 进入 **Actions** 页面启用 workflows。
 6. （可选）配 [EasyCron](https://easycron.com) 等外部触发器以减少延迟。
-7. （可选）本地试跑：`DEEPSEEK_API_KEY=... PUSHPLUS_TOKEN=... python main.py --mode morning`
 
 ## 配置项
 
@@ -31,11 +44,28 @@
 
 ## 本地开发
 
+### 一键脚本
+
+```bash
+# git-bash / WSL / macOS / Linux
+./setup.sh
+
+# Windows PowerShell
+.\setup.ps1
+```
+
+### 手动
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # 或 .venv\Scripts\activate
 pip install -r requirements.txt
 pytest -q
+```
+
+手动试跑一次：
+```bash
+DEEPSEEK_API_KEY=... PUSHPLUS_TOKEN=... python main.py --mode morning
 ```
 
 ## 许可
