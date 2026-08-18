@@ -43,7 +43,8 @@ def test_fetch_all_returns_items_within_window():
     mock_get.assert_called()
     _, kwargs = mock_get.call_args
     assert "timeout" in kwargs
-    assert kwargs["headers"]["User-Agent"] == "ai-news-wechat/0.1"
+    assert "Mozilla" in kwargs["headers"]["User-Agent"]
+    assert "Accept" in kwargs["headers"]
 
 
 def test_fetch_all_skips_seen_urls():

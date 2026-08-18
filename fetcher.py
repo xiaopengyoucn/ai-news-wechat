@@ -1,4 +1,5 @@
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -9,7 +10,12 @@ import requests
 
 log = logging.getLogger(__name__)
 
-_USER_AGENT = "ai-news-wechat/0.1"
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
+_ACCEPT = "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8"
 
 
 @dataclass
@@ -38,14 +44,26 @@ def _to_dt(entry) -> datetime | None:
     return None
 
 
-def fetch_one(url: str, timeout: int = 15):
-    resp = requests.get(
-        url,
-        timeout=timeout,
-        headers={"User-Agent": _USER_AGENT},
-    )
-    resp.raise_for_status()
-    return feedparser.parse(resp.content)
+def fetch_one(url: str, timeout: int = 15) -> feedparser.FeedParserDict:
+    last_exc: Exception | None = None
+    for attempt in range(2):
+        try:
+            resp = requests.get(
+                url,
+                timeout=timeout,
+                headers={
+                    "User-Agent": _USER_AGENT,
+                    "Accept": _ACCEPT,
+                    "Accept-Language": "en-US,en;q=0.9,zh;q=0.8",
+                },
+            )
+            resp.raise_for_status()
+            return feedparser.parse(resp.content)
+        except Exception as exc:
+            last_exc = exc
+            log.warning("fetch attempt %d failed for %s: %s", attempt + 1, url, exc)
+            time.sleep(0.5 * (attempt + 1))
+    raise last_exc  # type: ignore[misc]
 
 
 def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: int = 15) -> list[Item]:
@@ -57,13 +75,11 @@ def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: in
         except Exception as exc:
             log.warning("source %s fetch failed: %s", src["name"], exc)
             continue
-        if getattr(feed, "entries", None) is None:
+        entries = getattr(feed, "entries", None)
+        if not entries:
             log.warning("source %s returned no entries", src["name"])
             continue
-        if getattr(feed, "bozo", False) and not feed.entries:
-            log.warning("source %s parse error: %s", src["name"], feed.get("bozo_exception"))
-            continue
-        for entry in feed.entries:
+        for entry in entries:
             link = (getattr(entry, "link", "") or "").strip()
             if not link or link in seen:
                 continue
@@ -79,4 +95,5 @@ def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: in
                     published=published,
                 )
             )
+        time.sleep(0.2)
     return items
