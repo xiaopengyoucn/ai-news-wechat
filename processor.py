@@ -87,7 +87,7 @@ def _enrich_chunk(client: OpenAI, items: list[Item], model: str) -> list[dict] |
 def enrich(
     items: list[Item],
     api_key: str,
-    model: str = "deepseek-chat",
+    model: str = "deepseek-v4-flash",
     base_url: str = "https://api.deepseek.com/v1",
     top_n: int = 15,
     importance_threshold: int = 6,
