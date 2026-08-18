@@ -29,7 +29,7 @@ def run(mode: str) -> int:
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     token = os.environ.get("PUSHPLUS_TOKEN")
     topic = os.environ.get("PUSHPLUS_TOPIC")
-    model = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+    model = os.environ.get("LLM_MODEL") or "deepseek-v4-flash"
 
     if not api_key:
         log.error("DEEPSEEK_API_KEY not set")
