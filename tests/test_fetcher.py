@@ -15,13 +15,17 @@ FAKE_FEED = """<?xml version="1.0" encoding="UTF-8"?>
 </channel></rss>"""
 
 
+def _now_struct():
+    return datetime.now(timezone.utc).timetuple()[:6]
+
+
 def _entries_mock():
     return MagicMock(entries=[
         MagicMock(
             title="New Model Released",
             link="https://example.com/1",
             summary="A new model from lab",
-            published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
+            published_parsed=_now_struct(),
         ),
     ])
 
@@ -52,7 +56,7 @@ def test_fetch_all_skips_seen_urls():
                 title="A",
                 link="https://example.com/1",
                 summary="x",
-                published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
+                published_parsed=_now_struct(),
             ),
         ])
         items = fetch_all(sources, since_hours=24, seen={"https://example.com/1"})
@@ -74,7 +78,7 @@ def test_fetch_all_continues_when_one_source_fails():
                 title="OK",
                 link="https://good.example/1",
                 summary="ok",
-                published_parsed=(2026, 8, 5, 10, 0, 0, 0, 0, 0),
+                published_parsed=_now_struct(),
             )
         ])
     with patch("fetcher.requests.get", side_effect=fake_get), \

@@ -21,14 +21,18 @@ def test_state_round_trip():
 
 
 def test_state_prune_keeps_only_added_urls_in_window():
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    keep_ts = (now - timedelta(days=1)).isoformat()
+    old_ts = (now - timedelta(days=30)).isoformat()
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "state.json")
         with open(path, "w") as f:
             json.dump(
                 {
                     "urls": {
-                        "https://keep.com": "2026-08-05T10:00:00+00:00",
-                        "https://old.com": "2020-01-01T00:00:00+00:00",
+                        "https://keep.com": keep_ts,
+                        "https://old.com": old_ts,
                     }
                 },
                 f,
