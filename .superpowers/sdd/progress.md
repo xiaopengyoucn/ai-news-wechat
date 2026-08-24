@@ -14,3 +14,6 @@ Plan: `docs/superpowers/plans/2026-08-05-ai-news-wechat.md`
 | 7    | done    | 955b3f5 (feat(main): orchestration), review clean |
 | 8    | done    | b0ee34f (ci: daily cron + push workflow), review clean (Minor: dispatch mode not choice, no concurrency, main.py LLM_MODEL should default to '' or 'deepseek-chat') |
 | 9    | done    | 8ec9951 (docs: README with deployment instructions) |
+| fix | done    | 062abf1 (fix: Critical C1/C2 + Important I1-I5, I7), 24 tests pass |
+| fix-sources | done    | bdd8ee9 (fix: drop dead RSS, add BAIR + Verge; better fetcher UA + retry), 24 tests, 48 items in prod |
+| deploy | done    | repo https://github.com/xiaopengyoucn/ai-news-wechat, secrets configured, workflow 32159265555 success |

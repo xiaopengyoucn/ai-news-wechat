@@ -42,6 +42,31 @@
 如果某个 RSS URL 失效，编辑 `sources.py`，把对应行的 `url` 字段替换为新 RSS，提交后 Actions 自动生效。
 失效的源会打印到 Actions 日志中：`source <name> fetch failed: ...`。
 
+## 当前信源（19 个）
+
+**通用 AI（12）**：OpenAI News, Google DeepMind, BAIR Blog, arXiv cs.AI/CL/LG, Hacker News, TechCrunch AI, VentureBeat AI, The Verge AI, The Decoder, 量子位
+
+**AI for Science + 化学化工/聚合物/复合材料（7）**：
+- Nature Chemistry（化学顶刊）
+- Nature Materials（材料科学）
+- Nature Computational Science（AI+科学）
+- arXiv cond-mat.soft（聚合物/软物质）
+- arXiv cond-mat.mtrl-sci（材料科学）
+- arXiv q-bio.BM（生物分子）
+- Phys.org Chemistry（化学新闻，含高分子/复合材料）
+
+**重要性 boost**：含 polymer/composite/catalyst/electrolyte/合金/复合材料 等关键词的条目自动 +2 分（封顶 10）。
+
+## 推送时间精准化（EasyCron）
+
+GitHub Actions cron 可能延后 30+ 分钟。推荐用 EasyCron 外部触发精准在 08:00 / 20:00 Asia/Shanghai：
+
+```bash
+bash setup-easycron.sh
+```
+
+脚本会输出 EasyCron 配置指南 + 测试一次 GitHub workflow_dispatch。
+
 ## 本地开发
 
 ### 一键脚本

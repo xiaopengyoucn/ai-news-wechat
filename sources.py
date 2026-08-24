@@ -11,6 +11,13 @@ SOURCES = [
     {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "region": "en"},
     {"name": "The Decoder", "url": "https://the-decoder.com/feed/", "region": "en"},
     {"name": "量子位", "url": "https://www.qbitai.com/feed", "region": "zh"},
+    {"name": "Nature Chemistry", "url": "https://www.nature.com/nchem.rss", "region": "en"},
+    {"name": "Nature Materials", "url": "https://www.nature.com/nmat.rss", "region": "en"},
+    {"name": "Nature Computational Science", "url": "https://www.nature.com/subjects/computational-science.rss", "region": "en"},
+    {"name": "arXiv cond-mat.soft", "url": "https://export.arxiv.org/rss/cond-mat.soft", "region": "en"},
+    {"name": "arXiv cond-mat.mtrl-sci", "url": "https://export.arxiv.org/rss/cond-mat.mtrl-sci", "region": "en"},
+    {"name": "arXiv q-bio.BM", "url": "https://export.arxiv.org/rss/q-bio.BM", "region": "en"},
+    {"name": "Phys.org Chemistry", "url": "https://phys.org/rss-feed/chemistry-news/", "region": "en"},
 ]
 
 

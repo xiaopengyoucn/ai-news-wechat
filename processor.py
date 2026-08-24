@@ -10,6 +10,32 @@ from fetcher import Item
 
 log = logging.getLogger(__name__)
 
+_SCI_BOOST_KEYWORDS = (
+    "polymer", "polymerization", "monomer", "oligomer",
+    "composite", "composites", "fiberglass", "fibreglass", "carbon fiber", "carbon fibre",
+    "catalyst", "catalysis", "catalytic",
+    "electrolyte", "electrolytes", "anode", "cathode",
+    "battery", "lithium", "sodium-ion", "solid-state",
+    "alloy", "alloys", "intermetallic",
+    "crystal", "crystalline", "ceramic", "ceramics",
+    "synthesis", "synthesize", "synthesized",
+    "polymerization", "polycondensation", "crosslink",
+    "membrane", "separator", "electrolyte",
+    "electrocatalyst", "electrocatalysis",
+    "organic", "inorganic", "organometallic",
+    "nanoparticle", "nanotube", "nanofiber", "nanocomposite",
+    "self-assembly", "self-assembled",
+    "photosynthesis", "photochemistry",
+    "polyimide", "epoxy", "resin", "thermoplastic", "thermoset",
+    "elastomer", "rubber", "silicone",
+    "纤维", "复合材料", "高分子", "聚合物", "单体",
+    "催化", "催化剂", "电解液", "锂电", "电池",
+    "合金", "晶体", "陶瓷", "合成",
+    "纳米", "树脂", "橡胶", "硅胶",
+)
+
+_BOOST_AMOUNT = 2
+
 
 @dataclass
 class Processed:
@@ -122,6 +148,14 @@ def enrich(
             importance = int(row.get("importance", 0))
         except (TypeError, ValueError):
             importance = 0
+
+        title_zh = str(row.get("title_zh") or "")
+        summary_zh = str(row.get("summary_zh") or "")
+        haystack = (title_zh + " " + summary_zh).lower()
+        for kw in _SCI_BOOST_KEYWORDS:
+            if kw.lower() in haystack:
+                importance = min(10, importance + _BOOST_AMOUNT)
+                break
         if importance < importance_threshold:
             continue
         processed.append(
