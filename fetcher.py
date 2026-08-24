@@ -66,7 +66,7 @@ def fetch_one(url: str, timeout: int = 15) -> feedparser.FeedParserDict:
     raise last_exc  # type: ignore[misc]
 
 
-def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: int = 15) -> list[Item]:
+def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: int = 15, per_source_cap: int = 10) -> list[Item]:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     items: list[Item] = []
     for src in sources:
@@ -79,7 +79,10 @@ def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: in
         if not entries:
             log.warning("source %s returned no entries", src["name"])
             continue
+        count = 0
         for entry in entries:
+            if count >= per_source_cap:
+                break
             link = (getattr(entry, "link", "") or "").strip()
             if not link or link in seen:
                 continue
@@ -95,5 +98,6 @@ def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: in
                     published=published,
                 )
             )
+            count += 1
         time.sleep(0.2)
     return items

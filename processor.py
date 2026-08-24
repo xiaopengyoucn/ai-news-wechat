@@ -47,7 +47,7 @@ class Processed:
     source: str
 
 
-_CHUNK_SIZE = 20
+_CHUNK_SIZE = 30
 
 _PROMPT = """你是 AI 行业编辑。下面是 {n} 条英文新闻条目，请对每一条：
 1. 把 title 翻译为中文（保留专有名词原文）

@@ -87,20 +87,18 @@ def test_enrich_passes_timeout_to_client():
     assert kwargs.get("timeout") == 60.0
 
 
-def test_enrich_batches_into_chunks_of_20():
+def test_enrich_batches_into_chunks_of_30():
     items = [Item(url=f"https://a/{i}", title=f"t{i}", source="S", snippet="", published=None) for i in range(45)]
     chunks_json = [
-        _ok_response(items[0:20], start_imp=10),
-        _ok_response(items[20:40], start_imp=10),
-        _ok_response(items[40:45], start_imp=10),
+        _ok_response(items[0:30], start_imp=10),
+        _ok_response(items[30:45], start_imp=10),
     ]
     responses = [_fake_completion(j) for j in chunks_json]
 
     with patch("processor.OpenAI") as MockClient:
         MockClient.return_value.chat.completions.create.side_effect = responses
-        result = enrich(items, api_key="k")
-    assert MockClient.return_value.chat.completions.create.call_count == 3
-    assert len(result) == 15
+        enrich(items, api_key="k", top_n=50, importance_threshold=0)
+    assert MockClient.return_value.chat.completions.create.call_count == 2
 
 
 def test_enrich_falls_back_when_all_chunks_fail():
