@@ -11,6 +11,29 @@ def _items():
     ]
 
 
+def _items_with_images():
+    return [
+        Processed(
+            url="https://a/1",
+            title_zh="突破",
+            summary_zh="一句话",
+            importance=9,
+            category="研究",
+            source="Nature",
+            image_url="https://cdn.example.com/img1.jpg",
+        ),
+        Processed(
+            url="https://a/2",
+            title_zh="更新",
+            summary_zh="一句话2",
+            importance=7,
+            category="产品",
+            source="TechCrunch",
+            image_url=None,
+        ),
+    ]
+
+
 def _ok_resp():
     return MagicMock(status_code=200, text="ok", json=lambda: {"code": 200})
 
@@ -20,9 +43,31 @@ def test_render_markdown_contains_title_and_urls():
     assert "AI 早报" in md
     assert "https://a/1" in md
     assert "https://a/2" in md
-    assert "## 研究" in md
-    assert "## 产品" in md
+    assert "🔬" in md
+    assert "研究" in md
+    assert "🚀" in md
+    assert "产品" in md
     assert "突破" in md
+
+
+def test_render_markdown_uses_category_emojis():
+    md = render_markdown("AI 早报", _items())
+    assert "🔬 研究" in md
+    assert "🚀 产品" in md
+    assert "📊 共 2 条" in md
+    assert "─" in md
+
+
+def test_render_markdown_includes_image_when_present():
+    md = render_markdown("AI 早报", _items_with_images())
+    assert "![预览](https://cdn.example.com/img1.jpg)" in md
+    assert "![预览](https://a/2)" not in md
+
+
+def test_render_markdown_groups_by_category():
+    md = render_markdown("AI 早报", _items())
+    assert md.index("研究") < md.index("突破")
+    assert md.index("产品") < md.index("更新")
 
 
 def test_publish_pushplus_posts_to_correct_url():

@@ -11,25 +11,53 @@ log = logging.getLogger(__name__)
 _PUSHPLUS_URL = "https://www.pushplus.plus/send"
 
 
+_CATEGORY_EMOJI = {
+    "研究": "🔬",
+    "产品": "🚀",
+    "工具": "🛠️",
+    "行业": "📰",
+    "原始": "📄",
+    "其他": "📌",
+}
+
+
+def _emoji_for(cat: str) -> str:
+    return _CATEGORY_EMOJI.get(cat, "📌")
+
+
 def render_markdown(title: str, items: list[Processed]) -> str:
     if not items:
-        body = "今日 AI 信源无重要更新。可手动访问 PushPlus 或 GitHub Pages 回看。"
-    else:
-        by_cat: dict[str, list[Processed]] = {}
-        for it in items:
-            by_cat.setdefault(it.category, []).append(it)
-        lines = [f"# {title}", ""]
-        for cat in sorted(by_cat.keys()):
-            lines.append(f"## {cat}")
+        return (
+            "今日 AI 信源无重要更新。可手动访问 PushPlus 或 GitHub Pages 回看。"
+        )
+
+    by_cat: dict[str, list[Processed]] = {}
+    for it in items:
+        by_cat.setdefault(it.category, []).append(it)
+
+    lines: list[str] = [f"# {title}", ""]
+    lines.append(f"📊 共 {len(items)} 条 · 筛选阈值 ≥ 6")
+    lines.append("")
+
+    for cat in sorted(by_cat.keys(), key=lambda c: (-len(by_cat[c]), c)):
+        emoji = _emoji_for(cat)
+        group_items = by_cat[cat]
+        lines.append(f"## {emoji} {cat} ({len(group_items)})")
+        lines.append("")
+        lines.append("─" * 28)
+        lines.append("")
+        for it in group_items:
+            lines.append(f"**【{it.importance}】 {it.title_zh}**")
             lines.append("")
-            for it in by_cat[cat]:
-                lines.append(f"**[{it.importance}] {it.title_zh}**")
-                lines.append("")
+            if it.summary_zh:
                 lines.append(f"> {it.summary_zh}")
                 lines.append("")
-                lines.append(f"来源：{it.source}  [阅读原文]({it.url})")
+            if it.image_url:
+                lines.append(f"![预览]({it.image_url})")
                 lines.append("")
-        body = "\n".join(lines)
+            lines.append(f"📍 {it.source} · [阅读原文]({it.url})")
+            lines.append("")
+    body = "\n".join(lines)
     return body
 
 

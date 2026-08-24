@@ -25,6 +25,57 @@ class Item:
     source: str
     snippet: str
     published: datetime | None
+    image_url: str | None = None
+
+
+def _extract_image_url(entry) -> str | None:
+    candidates: list[str] = []
+
+    media_content = getattr(entry, "media_content", None) or []
+    for m in media_content:
+        url = m.get("url") if isinstance(m, dict) else None
+        mime = (m.get("type") if isinstance(m, dict) else "") or ""
+        if url and ("image" in mime or _looks_like_image_url(url)):
+            candidates.append(url)
+
+    media_thumbnail = getattr(entry, "media_thumbnail", None) or []
+    for m in media_thumbnail:
+        url = m.get("url") if isinstance(m, dict) else None
+        if url and _looks_like_image_url(url):
+            candidates.append(url)
+
+    enclosures = getattr(entry, "enclosures", None) or []
+    for e in enclosures:
+        url = e.get("href") if isinstance(e, dict) else None
+        mime = (e.get("type") if isinstance(e, dict) else "") or ""
+        if url and ("image" in mime or _looks_like_image_url(url)):
+            candidates.append(url)
+
+    if not candidates:
+        summary_raw = getattr(entry, "summary", "") or ""
+        desc_raw = getattr(entry, "description", "") or ""
+        if isinstance(summary_raw, str) or isinstance(desc_raw, str):
+            summary = (summary_raw if isinstance(summary_raw, str) else "") + (
+                desc_raw if isinstance(desc_raw, str) else ""
+            )
+            import re as _re
+            m = _re.search(r'<img[^>]+src=["\']([^"\']+)["\']', summary)
+            if m:
+                url = m.group(1)
+                if _looks_like_image_url(url):
+                    candidates.append(url)
+
+    return candidates[0] if candidates else None
+
+
+def _looks_like_image_url(url: str) -> bool:
+    if not url:
+        return False
+    u = url.lower()
+    return (
+        u.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"))
+        or "image" in u
+    )
 
 
 def _to_dt(entry) -> datetime | None:
@@ -96,6 +147,7 @@ def fetch_all(sources: list[dict], since_hours: int, seen: set[str], timeout: in
                     source=src["name"],
                     snippet=(getattr(entry, "summary", "") or getattr(entry, "description", "") or "").strip(),
                     published=published,
+                    image_url=_extract_image_url(entry),
                 )
             )
             count += 1

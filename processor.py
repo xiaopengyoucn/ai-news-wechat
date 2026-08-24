@@ -45,6 +45,7 @@ class Processed:
     importance: int
     category: str
     source: str
+    image_url: str | None = None
 
 
 _CHUNK_SIZE = 30
@@ -166,6 +167,7 @@ def enrich(
                 importance=importance,
                 category=str(row.get("category") or "其他"),
                 source=it.source,
+                image_url=it.image_url,
             )
         )
 
@@ -182,6 +184,7 @@ def fallback_processed(items: list[Item]) -> list[Processed]:
             importance=0,
             category="原始",
             source=it.source,
+            image_url=it.image_url,
         )
         for it in items
     ]

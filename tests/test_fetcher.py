@@ -97,3 +97,48 @@ def test_fetch_one_passes_timeout():
         fetch_one("https://example.com/feed", timeout=7)
     _, kwargs = mock_get.call_args
     assert kwargs["timeout"] == 7
+
+
+def test_extract_image_prefers_media_content():
+    from fetcher import _extract_image_url
+    entry = MagicMock(
+        media_content=[{"url": "https://cdn.example.com/big.jpg", "type": "image/jpeg"}],
+        media_thumbnail=[{"url": "https://cdn.example.com/small.jpg"}],
+        enclosures=[],
+    )
+    assert _extract_image_url(entry) == "https://cdn.example.com/big.jpg"
+
+
+def test_extract_image_falls_back_to_enclosure():
+    from fetcher import _extract_image_url
+    entry = MagicMock(
+        media_content=[],
+        media_thumbnail=[],
+        enclosures=[{"href": "https://cdn.example.com/enc.png", "type": "image/png"}],
+    )
+    assert _extract_image_url(entry) == "https://cdn.example.com/enc.png"
+
+
+def test_extract_image_returns_none_when_absent():
+    from fetcher import _extract_image_url
+    entry = MagicMock(media_content=[], media_thumbnail=[], enclosures=[])
+    assert _extract_image_url(entry) is None
+
+
+def test_fetch_all_extracts_image_url():
+    sources = [{"name": "Test", "url": "https://example.com/feed", "region": "en"}]
+    with patch("fetcher.requests.get") as mock_get, \
+         patch("feedparser.parse") as mock_parse:
+        mock_get.return_value = MagicMock(content=b"<rss/>", raise_for_status=lambda: None)
+        mock_parse.return_value = MagicMock(entries=[
+            MagicMock(
+                title="With image",
+                link="https://example.com/1",
+                summary="x",
+                published_parsed=_now_struct(),
+                media_content=[{"url": "https://cdn.example.com/img.jpg", "type": "image/jpeg"}],
+                media_thumbnail=[],
+            ),
+        ])
+        items = fetch_all(sources, since_hours=24, seen=set())
+    assert items[0].image_url == "https://cdn.example.com/img.jpg"
