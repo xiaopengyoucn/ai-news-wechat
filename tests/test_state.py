@@ -44,3 +44,17 @@ def test_state_prune_keeps_only_added_urls_in_window():
             data = json.load(f)
         assert "https://keep.com" in data["urls"]
         assert "https://old.com" not in data["urls"]
+
+
+def test_state_was_pushed_today_and_record():
+    from datetime import datetime, timezone
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "state.json")
+        store = StateStore(path)
+        assert store.was_pushed_today("morning") is False
+        assert store.was_pushed_today("evening") is False
+        store.record_push("morning")
+        assert store.was_pushed_today("morning") is True
+        assert store.was_pushed_today("evening") is False
+        store.record_push("evening")
+        assert store.was_pushed_today("evening") is True

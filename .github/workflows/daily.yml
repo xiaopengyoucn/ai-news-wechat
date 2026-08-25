@@ -1,12 +1,20 @@
 name: ai-news-daily
 
 on:
+  schedule:
+    # 兜底：cron-job.org 挂了才有用。晚于 cron-job.org 5 分钟避免重复触发
+    # cron-job.org 在 UTC 0:00 / 12:00 触发，这里 UTC 0:05 / 12:05 触发
+    - cron: '5 0,12 * * *'
   workflow_dispatch:
     inputs:
       mode:
         description: 'morning or evening'
         required: true
         default: 'morning'
+
+concurrency:
+  group: ai-news-pipeline
+  cancel-in-progress: false
 
 jobs:
   build:

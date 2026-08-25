@@ -41,6 +41,14 @@ def run(mode: str) -> int:
     state = StateStore("state.json")
     state.prune_older_than(days=7)
 
+    if state.was_pushed_today(mode):
+        log.info(
+            "%s push already completed today (cron-job.org succeeded earlier). "
+            "Skipping fallback trigger to avoid duplicate push.",
+            mode,
+        )
+        return 0
+
     since_hours = 12
     log.info("fetching sources (mode=%s, since_hours=%d)", mode, since_hours)
     items = fetch_all(get_sources(), since_hours=since_hours, seen=state.seen_urls())
@@ -66,6 +74,7 @@ def run(mode: str) -> int:
     if code == 200:
         log.info("push ok")
         state.add([it.url for it in processed])
+        state.record_push(mode)
         state.save()
         return 0
 

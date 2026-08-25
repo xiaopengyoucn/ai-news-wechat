@@ -36,6 +36,37 @@ _SCI_BOOST_KEYWORDS = (
 
 _BOOST_AMOUNT = 2
 
+_COMPANY_BOOST_KEYWORDS = (
+    "晶泰", "XtalPi", "晶泰科技",
+    "深势", "深势科技", "DP Technology",
+    "Citrine", "Kebotix", "Atinary",
+    "智谱", "Zhipu", "GLM",
+    "百川", "百川智能", "Baichuan",
+    "Kimi", "月之暗面", "Moonshot",
+    "通义", "通义千问", "Qwen",
+    "文心一言", "百度", "Baidu", "ERNIE",
+    "豆包", "字节跳动", "ByteDance", "Doubao",
+    "混元", "腾讯", "Tencent", "Hunyuan",
+    "盘古", "华为", "Huawei", "Pangu",
+    "DeepSeek", "深度求索",
+    "阶跃", "StepFun",
+    "稀宇科技", "MiniMax",
+    "上海人工智能实验室", "Shanghai AI Lab",
+)
+
+_CHINESE_SOURCE_NAMES = ("量子位", "机器之心", "36氪", "新智元")
+
+
+def _tier_score(p: "Processed") -> int:
+    text = (p.title_zh + " " + p.summary_zh).lower()
+    if any(kw.lower() in text for kw in _SCI_BOOST_KEYWORDS):
+        return 1
+    if any(kw.lower() in text for kw in _COMPANY_BOOST_KEYWORDS):
+        return 1
+    if p.source in _CHINESE_SOURCE_NAMES:
+        return 2
+    return 3
+
 
 @dataclass
 class Processed:
@@ -171,12 +202,12 @@ def enrich(
             )
         )
 
-    processed.sort(key=lambda p: p.importance, reverse=True)
+    processed.sort(key=lambda p: (_tier_score(p), -p.importance))
     return processed[:top_n]
 
 
-def fallback_processed(items: list[Item]) -> list[Processed]:
-    return [
+def fallback_processed(items: list[Item], top_n: int = 15) -> list[Processed]:
+    processed = [
         Processed(
             url=it.url,
             title_zh=it.title,
@@ -188,3 +219,5 @@ def fallback_processed(items: list[Item]) -> list[Processed]:
         )
         for it in items
     ]
+    processed.sort(key=lambda p: (_tier_score(p), -p.importance))
+    return processed[:top_n]
