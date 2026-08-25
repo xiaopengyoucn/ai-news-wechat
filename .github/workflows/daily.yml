@@ -34,12 +34,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Restore state
-        uses: actions/download-artifact@v4
+        uses: actions/cache@v4
         with:
-          name: ai-news-state
-          path: .
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+          path: state.json
+          key: ai-news-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ai-news-state-
 
       - name: Run pipeline
         env:
@@ -59,10 +59,10 @@ jobs:
 
       - name: Save state
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/cache@v4
         with:
-          name: ai-news-state
           path: state.json
+          key: ai-news-state-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Save digest artifact
         if: always()
