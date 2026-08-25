@@ -36,6 +36,23 @@ _SCI_BOOST_KEYWORDS = (
 
 _BOOST_AMOUNT = 2
 
+_AI_KEYWORDS = (
+    # English
+    "machine learning", "deep learning", "neural network", "graph neural",
+    "transformer", "diffusion model", "language model", "large language model",
+    "llm", "ml ", "ml-", " ml.", "(ml)",
+    "AI-driven", "AI-powered", "AI-based", "AI-assisted", "AI-enabled",
+    "AI model", "ML model", "foundation model",
+    "deepmind", "alphafold", "alphaproteo",
+    "predict", "prediction", "computational design", "in silico",
+    "molecular dynamics", "monte carlo", "simulation",
+    # Chinese
+    "人工智能", "机器学习", "深度学习", "神经网络",
+    "大模型", "AI 模型", "AI模型", "AI 驱动", "AI驱动",
+    "AI 辅助", "AI辅助", "深度神经网络", "图神经网络",
+    "AI 预测", "AI预测", "分子动力学", "模拟",
+)
+
 _COMPANY_BOOST_KEYWORDS = (
     "晶泰", "XtalPi", "晶泰科技",
     "深势", "深势科技", "DP Technology",
@@ -59,11 +76,14 @@ _CHINESE_SOURCE_NAMES = ("量子位", "机器之心", "36氪", "新智元")
 
 def _tier_score(p: "Processed") -> int:
     text = (p.title_zh + " " + p.summary_zh).lower()
-    if any(kw.lower() in text for kw in _SCI_BOOST_KEYWORDS):
+    has_chem = any(kw.lower() in text for kw in _SCI_BOOST_KEYWORDS)
+    has_company = any(kw in (p.title_zh + p.summary_zh) for kw in _COMPANY_BOOST_KEYWORDS)
+    has_ai = any(kw.lower() in text for kw in _AI_KEYWORDS)
+    if has_company:
         return 1
-    if any(kw.lower() in text for kw in _COMPANY_BOOST_KEYWORDS):
+    if has_chem and has_ai:
         return 1
-    if p.source in _CHINESE_SOURCE_NAMES:
+    if has_chem or has_ai:
         return 2
     return 3
 
