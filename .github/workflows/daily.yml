@@ -1,9 +1,6 @@
 name: ai-news-daily
 
 on:
-  schedule:
-    - cron: '0 0 * * *'   # 08:00 Asia/Shanghai
-    - cron: '0 12 * * *'  # 20:00 Asia/Shanghai
   workflow_dispatch:
     inputs:
       mode:
