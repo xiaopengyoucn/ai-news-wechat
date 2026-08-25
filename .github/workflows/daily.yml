@@ -38,6 +38,7 @@ jobs:
         with:
           name: ai-news-state
           path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Run pipeline
