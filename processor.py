@@ -34,7 +34,7 @@ _SCI_BOOST_KEYWORDS = (
     "纳米", "树脂", "橡胶", "硅胶",
 )
 
-_BOOST_AMOUNT = 2
+_BOOST_AMOUNT = 1
 
 _AI_KEYWORDS = (
     # English
@@ -83,8 +83,10 @@ def _tier_score(p: "Processed") -> int:
         return 1
     if has_chem and has_ai:
         return 1
-    if has_chem or has_ai:
+    if has_ai and not has_chem:
         return 2
+    if has_chem and not has_ai:
+        return 3
     return 3
 
 
