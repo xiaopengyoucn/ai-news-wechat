@@ -46,6 +46,9 @@ _AI_KEYWORDS = (
     "deepmind", "alphafold", "alphaproteo",
     "predict", "prediction", "computational design", "in silico",
     "molecular dynamics", "monte carlo", "simulation",
+    # Standalone AI/ML tokens (require word boundary)
+    "ai ", " ai", "ai.", "ai。", "ai，", "ai；", "ai：",
+    "ml ", " ml", "ml.", "ml。", "ml，",
     # Chinese
     "人工智能", "机器学习", "深度学习", "神经网络",
     "大模型", "AI 模型", "AI模型", "AI 驱动", "AI驱动",
@@ -224,8 +227,15 @@ def enrich(
             )
         )
 
-    processed.sort(key=lambda p: (_tier_score(p), -p.importance))
-    return processed[:top_n]
+    tier1 = [p for p in processed if _tier_score(p) == 1]
+    if len(tier1) >= 5:
+        tier1.sort(key=lambda p: -p.importance)
+        return tier1[:top_n]
+    tier12 = [p for p in processed if _tier_score(p) <= 2]
+    tier12.sort(key=lambda p: (_tier_score(p), -p.importance))
+    if len(tier12) >= 3:
+        return tier12[:top_n]
+    return tier12[:top_n]
 
 
 def fallback_processed(items: list[Item], top_n: int = 15) -> list[Processed]:

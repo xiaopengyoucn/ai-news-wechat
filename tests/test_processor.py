@@ -25,7 +25,7 @@ def test_enrich_parses_json_and_filters():
         Item(url="https://a/2", title="Minor update", source="Test", snippet="y", published=None),
     ]
     fake_json = (
-        '[{"url":"https://a/1","title_zh":"重大突破","summary_zh":"一句话","importance":9,"category":"研究"},'
+        '[{"url":"https://a/1","title_zh":"AI 重大突破 聚合物合成","summary_zh":"一句话","importance":9,"category":"研究"},'
         '{"url":"https://a/2","title_zh":"小更新","summary_zh":"另一句","importance":3,"category":"产品"}]'
     )
     with patch("processor.OpenAI") as MockClient:
@@ -33,7 +33,7 @@ def test_enrich_parses_json_and_filters():
         result = enrich(items, api_key="test-key")
     assert len(result) == 1
     assert result[0].url == "https://a/1"
-    assert result[0].importance == 9
+    assert result[0].importance == 10
 
 
 def test_enrich_sorts_by_importance_desc():
@@ -42,8 +42,8 @@ def test_enrich_sorts_by_importance_desc():
         Item(url="https://a/2", title="B", source="S", snippet="", published=None),
     ]
     fake_json = (
-        '[{"url":"https://a/1","title_zh":"1","summary_zh":"1","importance":5,"category":"研究"},'
-        '{"url":"https://a/2","title_zh":"2","summary_zh":"2","importance":9,"category":"研究"}]'
+        '[{"url":"https://a/1","title_zh":"AI 预测 聚合物性质 1","summary_zh":"1","importance":5,"category":"研究"},'
+        '{"url":"https://a/2","title_zh":"机器学习 催化 2","summary_zh":"2","importance":9,"category":"研究"}]'
     )
     with patch("processor.OpenAI") as MockClient:
         MockClient.return_value.chat.completions.create.return_value = _fake_completion(fake_json)
@@ -59,9 +59,9 @@ def test_enrich_returns_empty_for_empty_items():
 
 
 def test_enrich_top_n_cap():
-    items = [Item(url=f"https://a/{i}", title=f"t{i}", source="S", snippet="", published=None) for i in range(20)]
+    items = [Item(url=f"https://a/{i}", title=f"AI 预测 {i}", source="S", snippet="", published=None) for i in range(20)]
     fake_json = "[" + ",".join(
-        f'{{"url":"https://a/{i}","title_zh":"t{i}","summary_zh":"x","importance":{10 - i // 2},"category":"研"}}'
+        f'{{"url":"https://a/{i}","title_zh":"AI 预测 聚合物 {i}","summary_zh":"x","importance":{10 - i // 2},"category":"研"}}'
         for i in range(20)
     ) + "]"
     with patch("processor.OpenAI") as MockClient:
